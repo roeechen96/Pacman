@@ -224,7 +224,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (ghostRow >= 0 && ghostRow < rowCount &&
                     ghostColumn >= 0 && ghostColumn < columnCount) {
 
-                // Check if the tile is an O (teleport tile)
+
                 if (tileMap[ghostRow].charAt(ghostColumn) == 'O') {
                     if (ghost.x < 0) {
                         ghost.x = boardWidth - tileSize;
@@ -236,6 +236,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                         ghost.y = 0;
                     }
                 }
+
+                ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
+                ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
+
             }
         }
 
