@@ -152,8 +152,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     }
 
 
-
-
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
@@ -207,7 +205,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
-        // Check wall collisions for Pac-Man
         for (Block wall : walls) {
             if (collision(pacman, wall)) {
                 pacman.x -= pacman.velocityX;
@@ -225,7 +222,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, food)) {
                 foodEaten = food;
                 score += 10;
-                break; // Pac-Man can only eat one food per move
+                break;
             }
         }
         if (foodEaten != null) {
@@ -238,11 +235,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, cherry)) {
                 cherryEaten = cherry;
 
-                // Activate scared mode
                 ghostsScared = true;
                 scaredStartTime = System.currentTimeMillis();
 
-                // Change all ghosts to scared image
                 ResourceManager rm = ResourceManager.getInstance();
                 for (Block ghost : ghosts) {
                     ghost.image = rm.scaredGhostImage;
@@ -257,12 +252,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         if (ghostsScared) {
             long elapsedTime = System.currentTimeMillis() - scaredStartTime;
             if (elapsedTime > SCARED_DURATION) {
-                // Reset ghosts to their original images
                 ResourceManager rm = ResourceManager.getInstance();
                 ghostsScared = false;
 
                 for (Block ghost : ghosts) {
-                    ghost.image = rm.blueGhostImage; // Assuming blueGhostImage as the default
+                    ghost.image = ghost.originalImage;
                 }
             }
         }
@@ -296,7 +290,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             // Check collisions between Pac-Man and ghosts
             if (collision(ghost, pacman)) {
                 if (ghostsScared) {
-                    ghost.reset();
+                    ghost.reset(false);
                     score += 200; // Award bonus points for eating a scared ghost
                 } else {
                     lives--;
@@ -317,7 +311,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     }
 
 
-
     public boolean collision(Block a, Block b) {
         return a.x < b.x + b.width &&
                 a.x + a.width > b.x &&
@@ -326,11 +319,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     }
 
     public void resetPositions() {
-        pacman.reset();
+        pacman.reset(true);
         pacman.velocityX = 0;
         pacman.velocityY = 0;
         for (Block ghost : ghosts) {
-            ghost.reset();
+            ghost.reset(true);
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
@@ -409,6 +402,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         int width;
         int height;
         Image image;
+        Image originalImage;
 
         int startX;
         int startY;
@@ -418,6 +412,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         Block(Image image, int x, int y, int width, int height) {
             this.image = image;
+            this.originalImage = image;
             this.x = x;
             this.y = y;
             this.width = width;
@@ -458,9 +453,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        void reset() {
+        void reset(boolean restoreImage) {
             this.x = this.startX;
             this.y = this.startY;
+            if (restoreImage) {
+                this.image = this.originalImage; // Restore image only if needed
+            }
         }
     }
 }
