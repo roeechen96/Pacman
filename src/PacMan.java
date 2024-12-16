@@ -65,66 +65,64 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         addKeyListener(this);
         setFocusable(true);
 
-        //load images
-        wallImage = new ImageIcon(getClass().getResource("resources/images/wall.png")).getImage();
-        blueGhostImage = new ImageIcon(getClass().getResource("resources/images/blueGhost.png")).getImage();
-        orangeGhostImage = new ImageIcon(getClass().getResource("resources/images/orangeGhost.png")).getImage();
-        pinkGhostImage = new ImageIcon(getClass().getResource("resources/images/pinkGhost.png")).getImage();
-        redGhostImage = new ImageIcon(getClass().getResource("resources/images/redGhost.png")).getImage();
+        // Use ResourceManager Singleton to load images
+        ResourceManager rm = ResourceManager.getInstance();
 
-        pacmanUpImage = new ImageIcon(getClass().getResource("resources/images/pacmanUp.png")).getImage();
-        pacmanDownImage = new ImageIcon(getClass().getResource("resources/images/pacmanDown.png")).getImage();
-        pacmanLeftImage = new ImageIcon(getClass().getResource("resources/images/pacmanLeft.png")).getImage();
-        pacmanRightImage = new ImageIcon(getClass().getResource("resources/images/pacmanRight.png")).getImage();
+        wallImage = rm.wallImage;
+        blueGhostImage = rm.blueGhostImage;
+        orangeGhostImage = rm.orangeGhostImage;
+        pinkGhostImage = rm.pinkGhostImage;
+        redGhostImage = rm.redGhostImage;
+
+        pacmanUpImage = rm.pacmanUpImage;
+        pacmanDownImage = rm.pacmanDownImage;
+        pacmanLeftImage = rm.pacmanLeftImage;
+        pacmanRightImage = rm.pacmanRightImage;
 
         loadMap();
         for (Block ghost : ghosts) {
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
-        //how long it takes to start timer, milliseconds gone between frames
-        gameLoop = new Timer(50, this); //20fps (1000/50)
-        gameLoop.start();
 
+        // Start game loop
+        gameLoop = new Timer(50, this); // 20 FPS
+        gameLoop.start();
     }
 
+
     public void loadMap() {
-        walls = new HashSet<Block>();
-        foods = new HashSet<Block>();
-        ghosts = new HashSet<Block>();
+        walls = new HashSet<>();
+        foods = new HashSet<>();
+        ghosts = new HashSet<>();
+
+        ResourceManager rm = ResourceManager.getInstance();
 
         for (int r = 0; r < rowCount; r++) {
             for (int c = 0; c < columnCount; c++) {
-                String row = tileMap[r];
-                char tileMapChar = row.charAt(c);
-
+                char tileMapChar = tileMap[r].charAt(c);
                 int x = c * tileSize;
                 int y = r * tileSize;
 
-                if (tileMapChar == 'X') { //block wall
-                    Block wall = new Block(wallImage, x, y, tileSize, tileSize);
-                    walls.add(wall);
-                } else if (tileMapChar == 'b') { //blue ghost
-                    Block ghost = new Block(blueGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                } else if (tileMapChar == 'o') { //orange ghost
-                    Block ghost = new Block(orangeGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                } else if (tileMapChar == 'p') { //pink ghost
-                    Block ghost = new Block(pinkGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                } else if (tileMapChar == 'r') { //red ghost
-                    Block ghost = new Block(redGhostImage, x, y, tileSize, tileSize);
-                    ghosts.add(ghost);
-                } else if (tileMapChar == 'P') { //pacman
-                    pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
-                } else if (tileMapChar == ' ') { //food
-                    Block food = new Block(null, x + 14, y + 14, 4, 4);
-                    foods.add(food);
+                if (tileMapChar == 'X') { // Wall
+                    walls.add(new Block(rm.wallImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'b') { // Blue Ghost
+                    ghosts.add(new Block(rm.blueGhostImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'o') { // Orange Ghost
+                    ghosts.add(new Block(rm.orangeGhostImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'p') { // Pink Ghost
+                    ghosts.add(new Block(rm.pinkGhostImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'r') { // Red Ghost
+                    ghosts.add(new Block(rm.redGhostImage, x, y, tileSize, tileSize));
+                } else if (tileMapChar == 'P') { // Pac-Man
+                    pacman = new Block(rm.pacmanRightImage, x, y, tileSize, tileSize);
+                } else if (tileMapChar == ' ') { // Food
+                    foods.add(new Block(null, x + 14, y + 14, 4, 4));
                 }
             }
         }
     }
+
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
