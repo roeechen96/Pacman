@@ -167,6 +167,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
 
     public void move() {
+        if (gameOver) {
+            return;
+        }
+
         // Move Pac-Man
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
@@ -176,19 +180,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, wall)) {
                 pacman.x -= pacman.velocityX;
                 pacman.y -= pacman.velocityY;
-                return; // Stop further processing if Pac-Man collides with a wall
+                break; // Stop checking walls after collision
             }
         }
 
-        // **Teleport Pac-Man if it hits an O tile**
+        // Teleport Pac-Man if it hits an 'O' tile
         int pacmanColumn = pacman.x / tileSize;
         int pacmanRow = pacman.y / tileSize;
 
-        // Check if pacmanRow and pacmanColumn are within bounds
         if (pacmanRow >= 0 && pacmanRow < rowCount &&
                 pacmanColumn >= 0 && pacmanColumn < columnCount) {
-
-            // Check if the tile is an O (teleport tile)
             if (tileMap[pacmanRow].charAt(pacmanColumn) == 'O') {
                 if (pacman.x < 0) {
                     pacman.x = boardWidth - tileSize; // Teleport to the right side
@@ -213,18 +214,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                     ghost.x -= ghost.velocityX;
                     ghost.y -= ghost.velocityY;
                     ghost.updateDirection(directions[random.nextInt(4)]);
+                    break; // Stop checking walls after collision
                 }
             }
 
-            // **Teleport ghosts if they hit an O tile**
+            // Teleport ghosts if they hit an 'O' tile
             int ghostColumn = ghost.x / tileSize;
             int ghostRow = ghost.y / tileSize;
 
-            // Check if ghostRow and ghostColumn are within bounds
             if (ghostRow >= 0 && ghostRow < rowCount &&
                     ghostColumn >= 0 && ghostColumn < columnCount) {
-
-
                 if (tileMap[ghostRow].charAt(ghostColumn) == 'O') {
                     if (ghost.x < 0) {
                         ghost.x = boardWidth - tileSize;
@@ -236,10 +235,24 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                         ghost.y = 0;
                     }
                 }
+            }
 
-                ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
-                ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
+            // Ensure ghosts stay within bounds after teleport
+            ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
+            ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
 
+            // **Check collisions between Pac-Man and ghosts**
+            if (collision(ghost, pacman)) {
+                lives -= 1;
+
+                if (lives <= 0) {
+                    gameOver = true;
+                    return; // End the game
+                }
+
+                // Reset positions if Pac-Man still has lives
+                resetPositions();
+                return; // Exit the move method after handling collision
             }
         }
 
@@ -249,9 +262,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, food)) {
                 foodEaten = food;
                 score += 10;
+                break; // Only one food can be eaten at a time
             }
         }
-        foods.remove(foodEaten);
+        if (foodEaten != null) {
+            foods.remove(foodEaten);
+        }
 
         // Reload the map if all food is eaten
         if (foods.isEmpty()) {
@@ -259,6 +275,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             resetPositions();
         }
     }
+
 
 
 
