@@ -162,7 +162,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         if (row >= 0 && row < rowCount && column >= 0 && column < columnCount) {
             return tileMap[row].charAt(column);
         }
-        return ' '; // Return empty if out of bounds
+        return ' ';
     }
 
 
@@ -180,101 +180,66 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(pacman, wall)) {
                 pacman.x -= pacman.velocityX;
                 pacman.y -= pacman.velocityY;
-                break; // Stop checking walls after collision
+                break;
             }
         }
 
-        // Teleport Pac-Man if it hits an 'O' tile
-        int pacmanColumn = pacman.x / tileSize;
-        int pacmanRow = pacman.y / tileSize;
+        pacman.x = (pacman.x + boardWidth) % boardWidth;
+        pacman.y = (pacman.y + boardHeight) % boardHeight;
 
-        if (pacmanRow >= 0 && pacmanRow < rowCount &&
-                pacmanColumn >= 0 && pacmanColumn < columnCount) {
-            if (tileMap[pacmanRow].charAt(pacmanColumn) == 'O') {
-                if (pacman.x < 0) {
-                    pacman.x = boardWidth - tileSize; // Teleport to the right side
-                } else if (pacman.x >= boardWidth) {
-                    pacman.x = 0; // Teleport to the left side
-                } else if (pacman.y < 0) {
-                    pacman.y = boardHeight - tileSize; // Teleport to the bottom side
-                } else if (pacman.y >= boardHeight) {
-                    pacman.y = 0; // Teleport to the top side
-                }
-            }
-        }
-
-        // Move Ghosts
         for (Block ghost : ghosts) {
             ghost.x += ghost.velocityX;
             ghost.y += ghost.velocityY;
 
-            // Check wall collisions for ghosts
+            ghost.x = (ghost.x + boardWidth) % boardWidth;
+            ghost.y = (ghost.y + boardHeight) % boardHeight;
+
+            boolean collidedWithWall = false;
             for (Block wall : walls) {
                 if (collision(ghost, wall)) {
                     ghost.x -= ghost.velocityX;
                     ghost.y -= ghost.velocityY;
-                    ghost.updateDirection(directions[random.nextInt(4)]);
-                    break; // Stop checking walls after collision
+                    collidedWithWall = true;
+                    break;
                 }
             }
 
-            // Teleport ghosts if they hit an 'O' tile
-            int ghostColumn = ghost.x / tileSize;
-            int ghostRow = ghost.y / tileSize;
-
-            if (ghostRow >= 0 && ghostRow < rowCount &&
-                    ghostColumn >= 0 && ghostColumn < columnCount) {
-                if (tileMap[ghostRow].charAt(ghostColumn) == 'O') {
-                    if (ghost.x < 0) {
-                        ghost.x = boardWidth - tileSize;
-                    } else if (ghost.x >= boardWidth) {
-                        ghost.x = 0;
-                    } else if (ghost.y < 0) {
-                        ghost.y = boardHeight - tileSize;
-                    } else if (ghost.y >= boardHeight) {
-                        ghost.y = 0;
-                    }
-                }
+            // Change direction if collided with wall or randomly (every ~20 frames)
+            if (collidedWithWall || random.nextInt(20) == 0) {
+                ghost.updateDirection(directions[random.nextInt(4)]);
+                ghost.updateVelocity();
             }
 
-            // Ensure ghosts stay within bounds after teleport
-            ghost.x = Math.max(0, Math.min(ghost.x, boardWidth - ghost.width));
-            ghost.y = Math.max(0, Math.min(ghost.y, boardHeight - ghost.height));
-
-            // **Check collisions between Pac-Man and ghosts**
             if (collision(ghost, pacman)) {
-                lives -= 1;
-
+                lives--;
                 if (lives <= 0) {
                     gameOver = true;
-                    return; // End the game
+                    return;
                 }
-
-                // Reset positions if Pac-Man still has lives
                 resetPositions();
-                return; // Exit the move method after handling collision
+                return;
             }
         }
 
-        // Check food collisions
         Block foodEaten = null;
         for (Block food : foods) {
             if (collision(pacman, food)) {
                 foodEaten = food;
                 score += 10;
-                break; // Only one food can be eaten at a time
+                break;
             }
         }
         if (foodEaten != null) {
             foods.remove(foodEaten);
         }
 
-        // Reload the map if all food is eaten
+
         if (foods.isEmpty()) {
             loadMap();
             resetPositions();
         }
     }
+
 
 
 
