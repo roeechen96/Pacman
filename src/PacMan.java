@@ -18,20 +18,15 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     int score = 0;
     int lives = 3;
     boolean gameOver = false;
-    private int rowCount = 21;
-    private int columnCount = 19;
-    private int tileSize = 32;
-    private int boardWidth = columnCount * tileSize;
-    private int boardHeight = rowCount * tileSize;
-    private Image wallImage;
-    private Image blueGhostImage;
-    private Image orangeGhostImage;
-    private Image pinkGhostImage;
-    private Image redGhostImage;
-    private Image pacmanUpImage;
-    private Image pacmanDownImage;
-    private Image pacmanLeftImage;
-    private Image pacmanRightImage;
+    private final int rowCount = 21;
+    private final int columnCount = 19;
+    private final int tileSize = 32;
+    private final int boardWidth = columnCount * tileSize;
+    private final int boardHeight = rowCount * tileSize;
+    private final Image pacmanUpImage;
+    private final Image pacmanDownImage;
+    private final Image pacmanLeftImage;
+    private final Image pacmanRightImage;
     //X = wall, O = skip, P = pac man, ' ' = food
     //Ghosts: b = blue, o = orange, p = pink, r = red
     private final String[] tileMap = {
@@ -65,14 +60,13 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         addKeyListener(this);
         setFocusable(true);
 
-        // Use ResourceManager Singleton to load images
         ResourceManager rm = ResourceManager.getInstance();
 
-        wallImage = rm.wallImage;
-        blueGhostImage = rm.blueGhostImage;
-        orangeGhostImage = rm.orangeGhostImage;
-        pinkGhostImage = rm.pinkGhostImage;
-        redGhostImage = rm.redGhostImage;
+        Image wallImage = rm.wallImage;
+        Image blueGhostImage = rm.blueGhostImage;
+        Image orangeGhostImage = rm.orangeGhostImage;
+        Image pinkGhostImage = rm.pinkGhostImage;
+        Image redGhostImage = rm.redGhostImage;
 
         pacmanUpImage = rm.pacmanUpImage;
         pacmanDownImage = rm.pacmanDownImage;
@@ -85,7 +79,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             ghost.updateDirection(newDirection);
         }
 
-        // Start game loop
         gameLoop = new Timer(50, this); // 20 FPS
         gameLoop.start();
     }

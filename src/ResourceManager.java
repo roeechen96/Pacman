@@ -4,7 +4,6 @@ import java.awt.*;
 public class ResourceManager {
     private static ResourceManager instance;
 
-    // Images for walls, ghosts, Pac-Man
     public Image wallImage;
     public Image blueGhostImage, orangeGhostImage, pinkGhostImage, redGhostImage;
     public Image pacmanUpImage, pacmanDownImage, pacmanLeftImage, pacmanRightImage;
