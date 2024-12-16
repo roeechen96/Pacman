@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 
@@ -11,12 +12,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     HashSet<Block> walls;
     HashSet<Block> foods;
     HashSet<Block> ghosts;
+    HashSet<Block> cherries;
     Block pacman;
     Timer gameLoop;
     char[] directions = {'U', 'D', 'L', 'R'}; //up down left right
     Random random = new Random();
     int score = 0;
     int lives = 3;
+    long scaredStartTime = 0;
+    final int SCARED_DURATION = 10000;
+    boolean ghostsScared = false;
     boolean gameOver = false;
     private final int rowCount = 21;
     private final int columnCount = 19;
@@ -88,8 +93,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         walls = new HashSet<>();
         foods = new HashSet<>();
         ghosts = new HashSet<>();
-
+        cherries = new HashSet<>();
         ResourceManager rm = ResourceManager.getInstance();
+
+        java.util.List<Point> emptySpaces = new ArrayList<>(); // To store empty positions
 
         for (int r = 0; r < rowCount; r++) {
             for (int c = 0; c < columnCount; c++) {
@@ -97,24 +104,54 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 int x = c * tileSize;
                 int y = r * tileSize;
 
-                if (tileMapChar == 'X') { // Wall
-                    walls.add(new Block(rm.wallImage, x, y, tileSize, tileSize));
-                } else if (tileMapChar == 'b') { // Blue Ghost
-                    ghosts.add(new Block(rm.blueGhostImage, x, y, tileSize, tileSize));
-                } else if (tileMapChar == 'o') { // Orange Ghost
-                    ghosts.add(new Block(rm.orangeGhostImage, x, y, tileSize, tileSize));
-                } else if (tileMapChar == 'p') { // Pink Ghost
-                    ghosts.add(new Block(rm.pinkGhostImage, x, y, tileSize, tileSize));
-                } else if (tileMapChar == 'r') { // Red Ghost
-                    ghosts.add(new Block(rm.redGhostImage, x, y, tileSize, tileSize));
-                } else if (tileMapChar == 'P') { // Pac-Man
-                    pacman = new Block(rm.pacmanRightImage, x, y, tileSize, tileSize);
-                } else if (tileMapChar == ' ') { // Food
-                    foods.add(new Block(null, x + 14, y + 14, 4, 4));
+                switch (tileMapChar) {
+                    case 'X': // Wall
+                        walls.add(new Block(rm.wallImage, x, y, tileSize, tileSize));
+                        break;
+                    case 'P': // Pac-Man
+                        pacman = new Block(rm.pacmanRightImage, x, y, tileSize, tileSize);
+                        break;
+                    case 'b': // Blue Ghost
+                        ghosts.add(new Block(rm.blueGhostImage, x, y, tileSize, tileSize));
+                        break;
+                    case 'o': // Orange Ghost
+                        ghosts.add(new Block(rm.orangeGhostImage, x, y, tileSize, tileSize));
+                        break;
+                    case 'p': // Pink Ghost
+                        ghosts.add(new Block(rm.pinkGhostImage, x, y, tileSize, tileSize));
+                        break;
+                    case 'r': // Red Ghost
+                        ghosts.add(new Block(rm.redGhostImage, x, y, tileSize, tileSize));
+                        break;
+                    case ' ': // Food
+                        foods.add(new Block(null, x + 14, y + 14, 4, 4));
+                        emptySpaces.add(new Point(c, r)); // Collect empty spaces for cherries
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+        }
+
+        // Randomly place cherries in empty spaces
+        if (!emptySpaces.isEmpty()) {
+            int cherryCount = 2; // Number of cherries to place
+            for (int i = 0; i < cherryCount; i++) {
+                Point randomSpace = emptySpaces.remove(random.nextInt(emptySpaces.size())); // Pick a random empty space
+                int x = randomSpace.x * tileSize;
+                int y = randomSpace.y * tileSize;
+
+                if (i % 2 == 0) {
+                    cherries.add(new Block(rm.cherryImage, x, y, tileSize, tileSize));
+                } else {
+                    cherries.add(new Block(rm.cherryImage2, x, y, tileSize, tileSize));
                 }
             }
         }
     }
+
+
 
 
     public void paintComponent(Graphics g) {
@@ -132,6 +169,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         for (Block wall : walls) {
             g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
         }
+
+        for (Block cherry : cherries) {
+            g.drawImage(cherry.image, cherry.x, cherry.y, cherry.width, cherry.height, null);
+        }
+
 
         g.setColor(Color.WHITE);
         for (Block food : foods) {
@@ -159,10 +201,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     public void move() {
         if (gameOver) {
-            return;
+            return; // Stop all movement if the game is over
         }
 
-        // Move Pac-Man
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
@@ -178,13 +219,64 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacman.x = (pacman.x + boardWidth) % boardWidth;
         pacman.y = (pacman.y + boardHeight) % boardHeight;
 
+        // Check food collisions
+        Block foodEaten = null;
+        for (Block food : foods) {
+            if (collision(pacman, food)) {
+                foodEaten = food;
+                score += 10;
+                break; // Pac-Man can only eat one food per move
+            }
+        }
+        if (foodEaten != null) {
+            foods.remove(foodEaten);
+        }
+
+        // Check cherry collisions
+        Block cherryEaten = null;
+        for (Block cherry : cherries) {
+            if (collision(pacman, cherry)) {
+                cherryEaten = cherry;
+
+                // Activate scared mode
+                ghostsScared = true;
+                scaredStartTime = System.currentTimeMillis();
+
+                // Change all ghosts to scared image
+                ResourceManager rm = ResourceManager.getInstance();
+                for (Block ghost : ghosts) {
+                    ghost.image = rm.scaredGhostImage;
+                }
+            }
+        }
+        if (cherryEaten != null) {
+            cherries.remove(cherryEaten);
+        }
+
+        // If in scared mode, check if the scared timer has elapsed
+        if (ghostsScared) {
+            long elapsedTime = System.currentTimeMillis() - scaredStartTime;
+            if (elapsedTime > SCARED_DURATION) {
+                // Reset ghosts to their original images
+                ResourceManager rm = ResourceManager.getInstance();
+                ghostsScared = false;
+
+                for (Block ghost : ghosts) {
+                    ghost.image = rm.blueGhostImage; // Assuming blueGhostImage as the default
+                }
+            }
+        }
+
+        // Move Ghosts
         for (Block ghost : ghosts) {
             ghost.x += ghost.velocityX;
             ghost.y += ghost.velocityY;
 
+            // Teleport ghosts if they hit an edge
             ghost.x = (ghost.x + boardWidth) % boardWidth;
             ghost.y = (ghost.y + boardHeight) % boardHeight;
 
+            // Check wall collisions for ghosts
             boolean collidedWithWall = false;
             for (Block wall : walls) {
                 if (collision(ghost, wall)) {
@@ -195,44 +287,34 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 }
             }
 
-            // Change direction if collided with wall or randomly (every ~20 frames)
+            // Change direction randomly or on collision
             if (collidedWithWall || random.nextInt(20) == 0) {
                 ghost.updateDirection(directions[random.nextInt(4)]);
                 ghost.updateVelocity();
             }
 
+            // Check collisions between Pac-Man and ghosts
             if (collision(ghost, pacman)) {
-                lives--;
-                if (lives <= 0) {
-                    gameOver = true;
+                if (ghostsScared) {
+                    ghost.reset();
+                    score += 200; // Award bonus points for eating a scared ghost
+                } else {
+                    lives--;
+                    if (lives <= 0) {
+                        gameOver = true;
+                        return;
+                    }
+                    resetPositions();
                     return;
                 }
-                resetPositions();
-                return;
             }
         }
-
-        Block foodEaten = null;
-        for (Block food : foods) {
-            if (collision(pacman, food)) {
-                foodEaten = food;
-                score += 10;
-                break;
-            }
-        }
-        if (foodEaten != null) {
-            foods.remove(foodEaten);
-        }
-
 
         if (foods.isEmpty()) {
             loadMap();
             resetPositions();
         }
     }
-
-
-
 
 
 
@@ -287,7 +369,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             pacman.image = pacmanRightImage;
         }
     }
-
 
 
     @Override
